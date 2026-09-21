@@ -8,7 +8,7 @@ This document provides project context, architecture guidelines, and operational
 
 `embeddings-api` is a containerized, production-ready text embeddings service powered by [Hugging Face Text Embeddings Inference (TEI)](https://github.com/huggingface/text-embeddings-inference).
 
-- **Default Model**: `Alibaba-NLP/gte-multilingual-base` (768 dimensions, 8192 context window, 70+ languages).
+- **Default Model**: `onnx-community/gte-multilingual-base` (768 dimensions, 8192 context window, 70+ languages, optimized for CPU ONNX Runtime).
 - **Default Image**: `ghcr.io/huggingface/text-embeddings-inference:cpu-1.7` (with `linux/amd64` platform support).
 - **Default Port**: `8080` (mapped to container port `80`).
 - **Protocols Exposed**:
@@ -42,8 +42,9 @@ All runtime configurations are governed by `.env`:
 | Variable | Default Value | Description |
 |---|---|---|
 | `PORT` | `8080` | Host port mapped to container port 80. |
-| `MODEL_ID` | `Alibaba-NLP/gte-multilingual-base` | Hugging Face Hub model identifier or path. |
-| `DTYPE` | `float16` | Model data type precision (`float16` or `float32`). |
+| `MODEL_ID` | `onnx-community/gte-multilingual-base` | Hugging Face Hub model identifier or path. |
+| `DTYPE` | `float32` | Model data type precision (`float32` for CPU ORT, `float16` for GPU). |
+| `POOLING` | `cls` | Pooling strategy (`cls` or `mean`). |
 | `TEI_IMAGE` | `ghcr.io/huggingface/text-embeddings-inference:cpu-1.7` | Base TEI container image. |
 | `MAX_BATCH_TOKENS` | `2048` | Max tokens per batch (prevents memory spikes during warmup). |
 | `MAX_CLIENT_BATCH_SIZE` | `8` | Maximum inputs a client can send in one request. |

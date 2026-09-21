@@ -6,10 +6,11 @@ High-performance text embeddings service powered by [Hugging Face Text Embedding
 
 This project provides a production-ready setup for serving text embeddings using Hugging Face's TEI engine.
 By default, it is configured with:
-- **Model**: `Alibaba-NLP/gte-multilingual-base`
+- **Model**: `onnx-community/gte-multilingual-base` (ONNX-optimized for high-speed, reliable CPU inference)
 - **Image**: `ghcr.io/huggingface/text-embeddings-inference:cpu-1.7`
 - **Platform**: `linux/amd64`
-- **Data Type**: `float16`
+- **Data Type**: `float32`
+- **Pooling**: `cls`
 - **Port**: `8080`
 - **Volume Mount**: `./data:/data` (caches model weights locally to avoid re-downloading on container restarts)
 
@@ -27,8 +28,9 @@ cp .env.example .env
 You can customize `.env` as needed:
 ```env
 PORT=8080
-MODEL_ID=Alibaba-NLP/gte-multilingual-base
-DTYPE=float16
+MODEL_ID=onnx-community/gte-multilingual-base
+DTYPE=float32
+POOLING=cls
 TEI_IMAGE=ghcr.io/huggingface/text-embeddings-inference:cpu-1.7
 # HF_TOKEN=hf_xxx (only required for gated/private models)
 ```
