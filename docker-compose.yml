@@ -15,6 +15,10 @@ services:
       - ${MODEL_ID:-Alibaba-NLP/gte-multilingual-base}
       - --dtype
       - ${DTYPE:-float16}
+      - --max-batch-tokens
+      - ${MAX_BATCH_TOKENS:-2048}
+      - --max-client-batch-size
+      - ${MAX_CLIENT_BATCH_SIZE:-8}
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:80/health || exit 1"]
       interval: 10s
