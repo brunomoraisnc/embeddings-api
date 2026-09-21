@@ -1,0 +1,12 @@
+# Data & Model weights cache
+data/
+
+# Environment files
+.env
+
+# OS & Editor files
+.DS_Store
+*.swp
+*.swo
+.vscode/
+.idea/

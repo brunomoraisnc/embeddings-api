@@ -1,0 +1,10 @@
+services:
+  embeddings-api:
+    image: ghcr.io/huggingface/text-embeddings-inference:1.7
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
