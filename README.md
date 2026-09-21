@@ -52,6 +52,34 @@ To stop the service:
 docker compose down
 ```
 
+### 3. Expected Deployment Output
+
+Once started, the container initializes the ONNX Runtime engine, warms up, and reports healthy.
+
+Checking the container status:
+```bash
+docker compose ps
+```
+**Expected Output:**
+```text
+NAME             IMAGE                                                   COMMAND                  SERVICE          STATUS                    PORTS
+embeddings-api   ghcr.io/huggingface/text-embeddings-inference:cpu-1.7   "text-embeddings-rou…"   embeddings-api   Up (healthy)              0.0.0.0:8080->80/tcp
+```
+
+Viewing the container logs:
+```bash
+docker compose logs --tail 20
+```
+**Expected Output:**
+```text
+INFO text_embeddings_backend: backends/src/lib.rs:363: Model ONNX weights downloaded
+INFO text_embeddings_router: router/src/lib.rs:252: Warming up model
+INFO text_embeddings_router::http::server: router/src/http/server.rs:1847: Starting HTTP server: 0.0.0.0:80
+INFO text_embeddings_router::http::server: router/src/http/server.rs:1848: Ready
+```
+
+---
+
 ### Alternative: Run with `docker run`
 
 You can also run the container directly without compose:
@@ -61,8 +89,11 @@ docker run --platform linux/amd64 \
   -v $PWD/data:/data \
   --pull always \
   ghcr.io/huggingface/text-embeddings-inference:cpu-1.7 \
-  --model-id Alibaba-NLP/gte-multilingual-base \
-  --dtype float16
+  --model-id onnx-community/gte-multilingual-base \
+  --dtype float32 \
+  --pooling cls \
+  --max-batch-tokens 2048 \
+  --max-client-batch-size 8
 ```
 
 ### Optional: GPU Acceleration
@@ -93,6 +124,32 @@ A shell script to quickly verify that the service is running and all endpoints r
 ./test_api.sh 8080
 ```
 
+**Expected Output:**
+```text
+============================================================
+Testing Embeddings API (TEI) at http://localhost:8080
+============================================================
+
+1. Checking /health...
+✅ /health returned 200 OK
+
+2. Checking /info...
+Model Info:
+"model_id":"onnx-community/gte-multilingual-base"
+
+3. Testing POST /embed...
+Embeddings generated successfully. Response snippet:
+[[-0.027042571,-0.044719003,-0.034720976,0.005166299,0.037887368,...
+
+4. Testing POST /v1/embeddings (OpenAI compatible)...
+OpenAI endpoint response snippet:
+{"object":"list","data":[{"object":"embedding","embedding":[-0.027042571,-0.044719003,...
+
+============================================================
+✅ All tests passed successfully!
+============================================================
+```
+
 ### 2. Enriched LangChain Test Suite (`test_api_with_langchain.py`)
 
 A comprehensive Python test suite using LangChain to validate:
@@ -116,7 +173,66 @@ python3 test_api_with_langchain.py
 python3 test_api_with_langchain.py --provider both
 
 # Custom host or model
-python3 test_api_with_langchain.py --base-url http://localhost:8080 --model Alibaba-NLP/gte-multilingual-base
+python3 test_api_with_langchain.py --base-url http://localhost:8080 --model onnx-community/gte-multilingual-base
+```
+
+**Expected Output:**
+```text
+======================================================================
+🧪 Embeddings API - LangChain Enriched Test Suite
+   Target URL: http://localhost:8080
+   Model ID:   onnx-community/gte-multilingual-base
+   Provider:   both
+======================================================================
+
+======================================================================
+🚀 Running Enriched Tests with Provider: langchain-openai (OpenAIEmbeddings)
+======================================================================
+
+[Test 1] Single Query Embedding (embed_query)...
+  • Dimensions: 768
+  • L2 Norm: 1.0000
+  • Latency: ~50-150 ms
+  ✅ PASS: Single query embedding generated successfully.
+
+[Test 2] Batch Document Embedding (embed_documents)...
+  • Batch count: 4 / 4
+  • Total latency: ~130-160 ms (avg ~35-40 ms/doc)
+  ✅ PASS: All documents embedded with consistent dimensions.
+
+[Test 3] Vector Diversity & Non-Triviality Check...
+  • Cosine similarity between doc 1 (AI) and doc 2 (NLP): 0.7098
+  • Cosine similarity between doc 1 (AI) and doc 4 (Docker): 0.5077
+  ✅ PASS: Vectors are diverse and non-identical across distinct inputs.
+
+[Test 4] Semantic Similarity Evaluation...
+  • Anchor:    'The canine barked loudly at the mail carrier.'
+  • Related:   'A dog was barking at the postal worker outside.' -> Similarity: 0.8918
+  • Unrelated: 'The planetary orbit of Neptune takes about 165 Earth years.' -> Similarity: 0.4125
+  ✅ PASS: Related sentence has higher similarity (+0.4793).
+
+[Test 5] Multilingual Semantic Alignment Test...
+  Cross-lingual similarity against English greeting:
+    - Spanish     : 0.8412 ('Hola, ¿cómo estás hoy?')
+    - Portuguese  : 0.9247 ('Olá, como você está hoje?')
+    - French      : 0.8501 ('Bonjour, comment allez-vous aujourd'hui?')
+    - German      : 0.9175 ('Hallo, wie geht es dir heute?')
+    - Unrelated   : 0.3129 ('Quantum computing leverages superposition and entanglement.')
+  ✅ PASS: Cross-lingual greetings have higher similarity than unrelated text.
+
+[Test 6] End-to-End VectorStore Retrieval (InMemoryVectorStore)...
+  • Query: 'deploying models with fast inference'
+  • Top-1 Match: 'Hugging Face Text Embeddings Inference enables high-throughput vector serving.'
+  • Top-2 Match: 'Kubernetes is a system for automating deployment, scaling, and container operations.'
+  ✅ PASS: VectorStore retrieved the expected top document!
+
+======================================================================
+📋 Final Test Summary
+======================================================================
+  • langchain-openai              : ✅ PASSED
+  • huggingface_hub               : ✅ PASSED
+
+🎉 All LangChain integration tests passed successfully!
 ```
 
 ---
