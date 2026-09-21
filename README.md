@@ -82,11 +82,39 @@ docker run -p 8080:80 -v $PWD/data:/data embeddings-api
 
 ## Testing the API
 
-A test script is provided to verify that the service is running and all endpoints respond correctly:
+### 1. Basic Endpoint Test (`test_api.sh`)
+
+A shell script to quickly verify that the service is running and all endpoints respond:
 ```bash
 ./test_api.sh
 # or specify a custom port:
 ./test_api.sh 8080
+```
+
+### 2. Enriched LangChain Test Suite (`test_api_with_langchain.py`)
+
+A comprehensive Python test suite using LangChain to validate:
+- Single query embeddings (`embed_query`)
+- Batch document embeddings (`embed_documents`)
+- Vector dimensions, L2 normalization, and latency benchmarks
+- Vector diversity (flags if model returns identical/trivial vectors)
+- Semantic similarity ranking (related vs. unrelated texts)
+- Cross-lingual semantic alignment (multilingual texts)
+- End-to-end vector store retrieval using `InMemoryVectorStore`
+
+To run:
+```bash
+# Install dependencies
+pip install langchain-openai langchain-core huggingface_hub
+
+# Run tests with langchain-openai (default)
+python3 test_api_with_langchain.py
+
+# Run tests with both langchain-openai and native huggingface_hub
+python3 test_api_with_langchain.py --provider both
+
+# Custom host or model
+python3 test_api_with_langchain.py --base-url http://localhost:8080 --model Alibaba-NLP/gte-multilingual-base
 ```
 
 ---
