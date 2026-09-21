@@ -161,6 +161,83 @@ vector = response.data[0].embedding
 print(f"Embedding dimension: {len(vector)}")
 ```
 
+### 5. Using with LangChain
+
+Hugging Face TEI provides an OpenAI-compatible `/v1/embeddings` endpoint. In LangChain, the recommended way to connect to a self-hosted TEI server is using `langchain-openai` (since `langchain-huggingface`'s `HuggingFaceEndpointEmbeddings` enforces Hugging Face Hub repo IDs and rejects custom URLs).
+
+#### Option A: Using `langchain-openai` (Recommended)
+
+Install the dependency:
+```bash
+pip install langchain-openai
+```
+
+Use `OpenAIEmbeddings` configured with your local TEI endpoint:
+```python
+from langchain_openai import OpenAIEmbeddings
+
+embeddings = OpenAIEmbeddings(
+    base_url="http://localhost:8080/v1",
+    api_key="empty",  # TEI does not require an API key by default
+    model="Alibaba-NLP/gte-multilingual-base",
+    check_embedding_ctx_length=False
+)
+
+# Embed a single query
+query_vector = embeddings.embed_query("What is machine learning?")
+print(f"Query vector dimension: {len(query_vector)}")  # 768
+
+# Embed multiple documents
+doc_vectors = embeddings.embed_documents([
+    "What is machine learning?",
+    "Deep learning powers modern AI."
+])
+print(f"Generated {len(doc_vectors)} document vectors with dimension {len(doc_vectors[0])}")
+```
+
+#### Option B: Using `huggingface_hub` with LangChain `Embeddings`
+
+If you prefer using Hugging Face's native client without `langchain-openai`:
+
+Install dependencies:
+```bash
+pip install huggingface_hub langchain-core
+```
+
+Use a lightweight LangChain `Embeddings` wrapper:
+```python
+from huggingface_hub import InferenceClient
+from langchain_core.embeddings import Embeddings
+
+class TEIEmbeddings(Embeddings):
+    """LangChain Embeddings wrapper for Hugging Face Text Embeddings Inference (TEI)."""
+
+    def __init__(self, endpoint_url: str = "http://localhost:8080"):
+        self.client = InferenceClient(endpoint_url)
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        response = self.client.feature_extraction(texts)
+        return response.tolist()
+
+    def embed_query(self, text: str) -> list[float]:
+        response = self.client.feature_extraction(text)
+        # TEI returns a 2D array [1, dim] for a single string input
+        res_list = response.tolist()
+        return res_list[0] if isinstance(res_list[0], list) else res_list
+
+# Usage
+embeddings = TEIEmbeddings("http://localhost:8080")
+
+query_vector = embeddings.embed_query("What is machine learning?")
+print(f"Query vector dimension: {len(query_vector)}")  # 768
+
+doc_vectors = embeddings.embed_documents([
+    "What is machine learning?",
+    "Deep learning powers modern AI."
+])
+print(f"Generated {len(doc_vectors)} document vectors with dimension {len(doc_vectors[0])}")
+```
+
 ---
 
 ## Project Structure
